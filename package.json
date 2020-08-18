@@ -23,6 +23,7 @@
     "webpack-dev-server": "^3.11.0"
   },
   "devDependencies": {
-    "body-parser": "^1.19.0"
+    "body-parser": "^1.19.0",
+    "ws": "^7.3.1"
   }
 }

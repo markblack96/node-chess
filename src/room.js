@@ -2,26 +2,56 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 
 class Chat extends React.Component {
-    constructor() {
+    constructor(props) {
         super(props);
-        this.state = {messageHistory: [], currentMessage: ''}
+        this.state = {
+            messageHistory: [], 
+            currentMessage: '', 
+            roomID: this.props.roomID,
+            socket: new WebSocket('ws://localhost:3000')
+        }
 
-        this.getMessages = this.getMessages.bind(this);
+        fetch('/messages/' + this.state.roomID)
+            .then(resp=>resp.json())
+            .then(json=>this.setState({messageHistory: json}));
+
+        this.state.socket.onmessage = function(d) {
+            console.log(d);
+        }
+        this.state.socket.onopen = (d) => {
+            this.state.socket.send(JSON.stringify({message: "hey!"}))
+        }
+        // this.getMessages = this.getMessages.bind(this);
         this.updateMessageHistory = this.updateMessageHistory.bind(this);
         this.sendMessage = this.sendMessage.bind(this);
+        this.handleChange = this.handleChange.bind(this);
     }
-    getMessages() {
-        fetch('/messages')
+    updateMessageHistory(messageHistory) {
+        this.setState({messageHistory: messageHistory})
     }
-    updateMessageHistory(message) {
-        this.setState({messageHistory: messageHistory.push(message)})
+    upgradeToWebSocket() {
+        let socket = new WebSocket('ws://localhost:3000');
     }
     sendMessage() {
-        fetch('/sendMessages', {method: 'POST', body: JSON.stringify({roomID: null})})
+        fetch('/sendMessage', 
+        {
+            method: 'POST', 
+            body: JSON.stringify({
+                roomID: parseInt(document.URL.split('/')[4]), 
+                message: {from: "player", message: this.state.currentMessage}
+            }), 
+            headers: {"Content-Type": "application/json"}
+        })
+        .then(resp=>resp.json())
+        .then(d=>this.updateMessageHistory(d));
+    }
+    handleChange(event) {
+        this.setState({currentMessage: event.target.value});
+        console.log(this.state);
     }
     render() {
         let messages = this.state.messageHistory.map((d)=>{
-            return <p>{d.message}</p>
+            return <p key={d.id}>{d.message}</p>
           })
         return(
             <>
@@ -29,8 +59,8 @@ class Chat extends React.Component {
                 {messages}
             </div>
             <div id="messageEntry">
-                <textarea value={this.state.currentMessage}></textarea>
-                <button>Send Message</button>
+                <textarea onChange={this.handleChange} value={this.state.currentMessage}></textarea>
+                <button onClick={this.sendMessage}>Send Message</button>
             </div>
             </>
         )
@@ -38,9 +68,23 @@ class Chat extends React.Component {
 }
 
 class Room extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            roomID: parseInt(document.URL.split('/')[4]),
+        }
+        let roomID = this.state.roomID;
+        fetch('/joinGame', {
+            method: "POST",
+            headers: {"Content-Type": "application/json"}, 
+            body: JSON.stringify({room: roomID})
+            
+        }).then(resp=>resp.json())
+        .then(json=>console.log(json));
+    }
     render() {
         return (
-            <p>A room will go here!</p>
+            <Chat roomID={this.state.roomID} />
         )
     }
 }
