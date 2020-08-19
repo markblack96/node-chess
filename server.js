@@ -4,6 +4,14 @@ const path = require('path');
 const WebSocket = require('ws');
 
 
+var rooms = [
+    {id: 1, name: "Peewee's Playhouse", messages: [], players: []},
+    {id: 2, name: "The White House", messages: [], players: []},
+    {id: 3, name: "The Boiler Room", messages: [], players: []}
+]
+var idCount = 3;
+var playerCount = 0;
+
 const app = express();
 const jsonParser = bodyParser.json()
 
@@ -13,16 +21,26 @@ wsServer.on('connection', socket=>{
         let json = JSON.parse(message);
         console.log(json);
         if (json !== undefined) {
+            let roomID = parseInt(json.data.roomID);
+            let roomIndex = rooms.findIndex(r=>r.id===roomID);
             console.log(json.data);
             switch (json.type) {
+                case "join":
+                    // add player to room
+                    socket.send(JSON.stringify({
+                        type: 'join',
+                        userID: ++idCount,
+                        message: `Player ${idCount} added to room ${roomID}`
+                    }))
+                    rooms[roomIndex].players.push({userID: idCount, socket: socket})
+                    console.log(rooms[roomIndex]);
+                    break;
                 case "chat":
                     // send message in room
-                    let roomID = parseInt(json.data.roomID);
-                    let roomIndex = rooms.findIndex(r=>r.id===roomID);
                     rooms[roomIndex].messages.push(json.data.message);
 
                     // send message to everyone in room
-
+                    rooms[roomIndex].players.forEach(d=>d.socket.send(JSON.stringify({type: 'message', messageHistory: rooms[roomIndex].messages})))
                     break;
                 case "move":
                     // make move in game
@@ -40,13 +58,7 @@ server.on('upgrade', (request, socket, head) => {
     })
 })
 
-var rooms = [
-    {id: 1, name: "Peewee's Playhouse", messages: [], players: []},
-    {id: 2, name: "The White House", messages: [], players: []},
-    {id: 3, name: "The Boiler Room", messages: [], players: []}
-]
-var idCount = 3;
-var playerCount = 0;
+
 app.use(express.static('public'));
 
 app.get('/', function (req, res) {
@@ -78,9 +90,7 @@ app.post('/sendMessage', jsonParser, function(req, res){
     res.json(room.messages);
 })
 app.post('/joinGame', jsonParser, function(req, res){
-    console.log(req.body);
     let roomID = req.body.room;
-    console.log(roomID, typeof(roomID));
     rooms[rooms.findIndex(room=>room.id===roomID)].players.push({playerID: playerCount++});
     let room = rooms[rooms.findIndex(room=>room.id===roomID)];
     res.json({
@@ -88,7 +98,6 @@ app.post('/joinGame', jsonParser, function(req, res){
         players: rooms[rooms.findIndex(room=>room.id===roomID)].players,
         playerID: room.players[room.players.length - 1]
     })
-    console.log(rooms[rooms.findIndex(room=>room.id===roomID)]);
 })
 app.listen('5000', function () {
     console.log('Node-chess running on port 5000')

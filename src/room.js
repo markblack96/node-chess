@@ -8,6 +8,7 @@ class Chat extends React.Component {
             messageHistory: [], 
             currentMessage: '', 
             roomID: this.props.roomID,
+            userID: null,
             socket: new WebSocket('ws://localhost:3000')
         }
 
@@ -15,11 +16,21 @@ class Chat extends React.Component {
             .then(resp=>resp.json())
             .then(json=>this.setState({messageHistory: json}));
 
-        this.state.socket.onmessage = function(d) {
+        this.state.socket.onmessage = (d) => {
+            let data = JSON.parse(d.data);
+            if (data.type === 'join') {
+                console.log(data.userID);
+                this.setState({userID: data.userID})
+            }
+            if (data.type === 'message') {
+                this.setState({messageHistory: data.messageHistory})
+            }
             console.log(d);
         }
         this.state.socket.onopen = (d) => {
-            this.state.socket.send(JSON.stringify({message: "hey!"}))
+            this.state.socket.send(JSON.stringify({type: "join", data: {
+                roomID: this.state.roomID
+            }}))
         }
         // this.getMessages = this.getMessages.bind(this);
         this.updateMessageHistory = this.updateMessageHistory.bind(this);
@@ -33,7 +44,7 @@ class Chat extends React.Component {
         let socket = new WebSocket('ws://localhost:3000');
     }
     sendMessage() {
-        fetch('/sendMessage', 
+        /*fetch('/sendMessage', 
         {
             method: 'POST', 
             body: JSON.stringify({
@@ -43,7 +54,16 @@ class Chat extends React.Component {
             headers: {"Content-Type": "application/json"}
         })
         .then(resp=>resp.json())
-        .then(d=>this.updateMessageHistory(d));
+        .then(d=>this.updateMessageHistory(d));*/
+        this.state.socket.send(JSON.stringify({
+            type: "chat",
+            data: {
+                message: this.state.currentMessage,
+                from: this.state.userID,
+                roomID: this.state.roomID
+            }
+        }));
+
     }
     handleChange(event) {
         this.setState({currentMessage: event.target.value});
@@ -51,7 +71,7 @@ class Chat extends React.Component {
     }
     render() {
         let messages = this.state.messageHistory.map((d)=>{
-            return <p key={d.id}>{d.message}</p>
+            return <p>{d}</p>
           })
         return(
             <>
@@ -74,13 +94,14 @@ class Room extends React.Component {
             roomID: parseInt(document.URL.split('/')[4]),
         }
         let roomID = this.state.roomID;
-        fetch('/joinGame', {
+        /* fetch('/joinGame', {
             method: "POST",
             headers: {"Content-Type": "application/json"}, 
             body: JSON.stringify({room: roomID})
             
         }).then(resp=>resp.json())
         .then(json=>console.log(json));
+        */
     }
     render() {
         return (
