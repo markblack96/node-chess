@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
+import Chess from 'chess.js';
+
+let chess = new Chess();
+console.log(chess);
 
 class Chat extends React.Component {
     constructor(props) {
@@ -71,7 +75,7 @@ class Chat extends React.Component {
     }
     render() {
         let messages = this.state.messageHistory.map((d)=>{
-            return <p>{d}</p>
+            return <p>{d.from}: {d.message}</p>
           })
         return(
             <>

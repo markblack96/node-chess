@@ -37,7 +37,7 @@ wsServer.on('connection', socket=>{
                     break;
                 case "chat":
                     // send message in room
-                    rooms[roomIndex].messages.push(json.data.message);
+                    rooms[roomIndex].messages.push(json.data);
 
                     // send message to everyone in room
                     rooms[roomIndex].players.forEach(d=>d.socket.send(JSON.stringify({type: 'message', messageHistory: rooms[roomIndex].messages})))
