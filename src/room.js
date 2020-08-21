@@ -5,6 +5,18 @@ import Chess from 'chess.js';
 let chess = new Chess();
 console.log(chess);
 
+class Game extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            game: null,
+            players: this.props.players,
+            roomID: this.props.roomID,
+            socket: this.props.socket
+        }
+    }
+}
+
 class Chat extends React.Component {
     constructor(props) {
         super(props);
@@ -13,7 +25,7 @@ class Chat extends React.Component {
             currentMessage: '', 
             roomID: this.props.roomID,
             userID: null,
-            socket: new WebSocket('ws://localhost:3000')
+            socket: this.props.socket
         }
 
         fetch('/messages/' + this.state.roomID)
@@ -96,6 +108,7 @@ class Room extends React.Component {
         super(props);
         this.state = {
             roomID: parseInt(document.URL.split('/')[4]),
+            socket: new WebSocket('ws://localhost:3000')
         }
         let roomID = this.state.roomID;
         /* fetch('/joinGame', {
@@ -109,7 +122,7 @@ class Room extends React.Component {
     }
     render() {
         return (
-            <Chat roomID={this.state.roomID} />
+            <Chat roomID={this.state.roomID} socket={this.state.socket} />
         )
     }
 }
