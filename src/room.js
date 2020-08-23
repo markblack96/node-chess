@@ -1,19 +1,73 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import Chess from 'chess.js';
+import Chessboard from 'chessboardjsx';
 
 let chess = new Chess();
-console.log(chess);
 
 class Game extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            game: null,
-            players: this.props.players,
+            userColor: this.props.userColor,
             roomID: this.props.roomID,
-            socket: this.props.socket
+            socket: this.props.socket,
+            fen:  this.props.position, //'start'  // 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' // starting position
         }
+        console.log("State at constructor", this.state);
+        this.state.socket.onmessage = (d) => {
+            let data = JSON.parse(d.data);
+            console.log(data);
+            if (data.type === 'move') {
+                console.log("Move received");
+                this.setState({fen: data.fen})
+                // this.game.position = this.state.fen;
+            }
+        } 
+
+        /*
+        this.state.socket.onmessage = (d) => {
+            let data = JSON.parse(d.data);
+            if (data.type === 'message') {
+                this.setState({messageHistory: data.messageHistory})
+            }
+        }
+
+        */
+        this.sendMove = this.sendMove.bind(this);
+        this.onDrop = this.onDrop.bind(this);
+    }
+    sendMove() {
+        this.state.socket.send(JSON.stringify({
+            type: "move",
+            data: {
+                newFen: this.game.fen(),
+                roomID: this.state.roomID
+            }
+        }));
+    }
+    componentDidMount() {
+        this.game = chess;
+    }
+    onDrop({ sourceSquare, targetSquare }) {
+        if (this.game.turn() !== this.state.userColor) return; // escape before move is made
+        let move = this.game.move({
+            from: sourceSquare,
+            to: targetSquare,
+            promotion: 'q'
+        })
+        console.log(move);
+        if (move === null) return; // if null move is illegal
+        this.setState({
+            fen: this.game.fen(),
+            // history: this.game.history({ verbose: true }),
+        })
+        this.sendMove();
+    }
+    render() {
+        return (
+            <Chessboard position={this.state.fen} onDrop={this.onDrop} />
+        )
     }
 }
 
@@ -21,35 +75,19 @@ class Chat extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            messageHistory: [], 
+            messageHistory: this.props.messageHistory,
             currentMessage: '', 
             roomID: this.props.roomID,
-            userID: null,
+            userID: this.props.userID,
             socket: this.props.socket
         }
 
-        fetch('/messages/' + this.state.roomID)
-            .then(resp=>resp.json())
-            .then(json=>this.setState({messageHistory: json}));
-
         this.state.socket.onmessage = (d) => {
             let data = JSON.parse(d.data);
-            if (data.type === 'join') {
-                console.log(data.userID);
-                this.setState({userID: data.userID})
-            }
             if (data.type === 'message') {
                 this.setState({messageHistory: data.messageHistory})
             }
-            console.log(d);
-        }
-        this.state.socket.onopen = (d) => {
-            this.state.socket.send(JSON.stringify({type: "join", data: {
-                roomID: this.state.roomID
-            }}))
-        }
-        // this.getMessages = this.getMessages.bind(this);
-        this.updateMessageHistory = this.updateMessageHistory.bind(this);
+        } 
         this.sendMessage = this.sendMessage.bind(this);
         this.handleChange = this.handleChange.bind(this);
     }
@@ -60,17 +98,6 @@ class Chat extends React.Component {
         let socket = new WebSocket('ws://localhost:3000');
     }
     sendMessage() {
-        /*fetch('/sendMessage', 
-        {
-            method: 'POST', 
-            body: JSON.stringify({
-                roomID: parseInt(document.URL.split('/')[4]), 
-                message: {from: "player", message: this.state.currentMessage}
-            }), 
-            headers: {"Content-Type": "application/json"}
-        })
-        .then(resp=>resp.json())
-        .then(d=>this.updateMessageHistory(d));*/
         this.state.socket.send(JSON.stringify({
             type: "chat",
             data: {
@@ -83,7 +110,6 @@ class Chat extends React.Component {
     }
     handleChange(event) {
         this.setState({currentMessage: event.target.value});
-        console.log(this.state);
     }
     render() {
         let messages = this.state.messageHistory.map((d)=>{
@@ -107,22 +133,42 @@ class Room extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            messageHistory: [], 
+            userColor: null,
+            userID: null,
             roomID: parseInt(document.URL.split('/')[4]),
-            socket: new WebSocket('ws://localhost:3000')
+            fen: 'start',
+            socket: new WebSocket('ws://localhost:3000'),
+            isLoading: true // least hacky solution to get userID to be passed to children
         }
-        let roomID = this.state.roomID;
-        /* fetch('/joinGame', {
-            method: "POST",
-            headers: {"Content-Type": "application/json"}, 
-            body: JSON.stringify({room: roomID})
-            
-        }).then(resp=>resp.json())
-        .then(json=>console.log(json));
-        */
+
+        fetch('/messages/' + this.state.roomID)
+            .then(resp=>resp.json())
+            .then(json=>this.setState({messageHistory: json}));
+
+        this.state.socket.onopen = (d) => {
+            this.state.socket.send(JSON.stringify({type: "join", data: {
+                roomID: this.state.roomID
+            }}))
+        }
+        this.state.socket.onmessage = (d) => {
+            console.log(d);
+            let data = JSON.parse(d.data);
+            if (data.type === 'join') {
+                this.setState({userID: data.userID, userColor: data.userColor, fen: data.fen, isLoading: false})
+            }
+        }
+        
     }
     render() {
+        if (this.state.isLoading) {
+            return <p>Loading...</p>;
+        }
         return (
-            <Chat roomID={this.state.roomID} socket={this.state.socket} />
+            <>
+            <Game roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} userColor={this.state.userColor} position={this.state.fen}/>
+            <Chat roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} messageHistory={this.state.messageHistory}/>
+            </>
         )
     }
 }

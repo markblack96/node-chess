@@ -5,9 +5,7 @@ const WebSocket = require('ws');
 
 
 var rooms = [
-    {id: 1, name: "Peewee's Playhouse", messages: [], players: []},
-    {id: 2, name: "The White House", messages: [], players: []},
-    {id: 3, name: "The Boiler Room", messages: [], players: []}
+    {id: 1, name: "Peewee's Playhouse", messages: [], players: [], gameFen: 'start'},
 ]
 var idCount = 3;
 var playerCount = 0;
@@ -19,21 +17,27 @@ const wsServer = new WebSocket.Server({ noServer: true });
 wsServer.on('connection', socket=>{
     socket.on('message', message => {
         let json = JSON.parse(message);
-        console.log(json);
         if (json !== undefined) {
             let roomID = parseInt(json.data.roomID);
             let roomIndex = rooms.findIndex(r=>r.id===roomID);
-            console.log(json.data);
             switch (json.type) {
                 case "join":
                     // add player to room
-                    socket.send(JSON.stringify({
+                    let playerColor = '';
+                    if (rooms[roomIndex].players.length == 0) {
+                        playerColor = 'w';
+                    } else if (rooms[roomIndex].players.length == 1) {
+                        playerColor = 'b';
+                    }
+                    let response = JSON.stringify({
                         type: 'join',
                         userID: ++idCount,
+                        userColor: playerColor,
+                        fen: rooms[roomIndex].gameFen,
                         message: `Player ${idCount} added to room ${roomID}`
-                    }))
-                    rooms[roomIndex].players.push({userID: idCount, socket: socket})
-                    console.log(rooms[roomIndex]);
+                    });
+                    socket.send(response);
+                    rooms[roomIndex].players.push({userID: idCount, socket: socket});
                     break;
                 case "chat":
                     // send message in room
@@ -44,12 +48,19 @@ wsServer.on('connection', socket=>{
                     break;
                 case "move":
                     // make move in game
+                    console.log(json);
+                    rooms[roomIndex].gameFen = json.data.newFen;
+                    rooms[roomIndex].players.forEach(d=>{
+                        let response = JSON.stringify({type: 'move', fen: rooms[roomIndex].gameFen});
+                        console.log(response);
+                        d.socket.send(response);
+                    });
                     break;
             }
         }
     } );
 
-    socket.send('Hello, client!');
+    // socket.send('Hello, client!');
 })
 const server = app.listen(3000); // needed for upgrade to ws
 server.on('upgrade', (request, socket, head) => {
