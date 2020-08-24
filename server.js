@@ -24,9 +24,9 @@ wsServer.on('connection', socket=>{
                 case "join":
                     // add player to room
                     let playerColor = '';
-                    if (rooms[roomIndex].players.length == 0) {
+                    if (rooms[roomIndex].players.length === 0) {
                         playerColor = 'w';
-                    } else if (rooms[roomIndex].players.length == 1) {
+                    } else if (rooms[roomIndex].players.length === 1) {
                         playerColor = 'b';
                     }
                     let response = JSON.stringify({

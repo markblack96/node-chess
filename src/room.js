@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import Chess from 'chess.js';
 import Chessboard from 'chessboardjsx';
 
-let chess = new Chess();
+
 
 class Game extends React.Component {
     constructor(props) {
@@ -15,6 +15,7 @@ class Game extends React.Component {
             fen:  this.props.position, //'start'  // 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' // starting position
         }
         console.log("State at constructor", this.state);
+        /*
         this.state.socket.onmessage = (d) => {
             let data = JSON.parse(d.data);
             console.log(data);
@@ -24,15 +25,6 @@ class Game extends React.Component {
                 // this.game.position = this.state.fen;
             }
         } 
-
-        /*
-        this.state.socket.onmessage = (d) => {
-            let data = JSON.parse(d.data);
-            if (data.type === 'message') {
-                this.setState({messageHistory: data.messageHistory})
-            }
-        }
-
         */
         this.sendMove = this.sendMove.bind(this);
         this.onDrop = this.onDrop.bind(this);
@@ -47,16 +39,18 @@ class Game extends React.Component {
         }));
     }
     componentDidMount() {
+        let chess = new Chess();
         this.game = chess;
     }
     onDrop({ sourceSquare, targetSquare }) {
+        console.log(this.game.turn() !== this.state.userColor);
+        console.log(this.game.turn(),this.state.userColor)
         if (this.game.turn() !== this.state.userColor) return; // escape before move is made
         let move = this.game.move({
             from: sourceSquare,
             to: targetSquare,
             promotion: 'q'
         })
-        console.log(move);
         if (move === null) return; // if null move is illegal
         this.setState({
             fen: this.game.fen(),
@@ -81,13 +75,13 @@ class Chat extends React.Component {
             userID: this.props.userID,
             socket: this.props.socket
         }
-
+        /*
         this.state.socket.onmessage = (d) => {
             let data = JSON.parse(d.data);
             if (data.type === 'message') {
                 this.setState({messageHistory: data.messageHistory})
             }
-        } 
+        } */
         this.sendMessage = this.sendMessage.bind(this);
         this.handleChange = this.handleChange.bind(this);
     }
@@ -116,7 +110,7 @@ class Chat extends React.Component {
             return <p>{d.from}: {d.message}</p>
           })
         return(
-            <>
+            <div class="flex">
             <div id="messageHistory">
                 {messages}
             </div>
@@ -124,7 +118,7 @@ class Chat extends React.Component {
                 <textarea onChange={this.handleChange} value={this.state.currentMessage}></textarea>
                 <button onClick={this.sendMessage}>Send Message</button>
             </div>
-            </>
+            </div>
         )
     }
 }
@@ -157,6 +151,17 @@ class Room extends React.Component {
             if (data.type === 'join') {
                 this.setState({userID: data.userID, userColor: data.userColor, fen: data.fen, isLoading: false})
             }
+            if (data.type === 'move') {
+                console.log("Move received");
+
+                console.log(data.fen);
+                this.game.game.load(data.fen);
+                this.game.setState({fen: data.fen})
+                // this.game.position = this.state.fen;
+            }
+            if (data.type === 'message') {
+                this.chat.setState({messageHistory: data.messageHistory})
+            }
         }
         
     }
@@ -166,8 +171,8 @@ class Room extends React.Component {
         }
         return (
             <>
-            <Game roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} userColor={this.state.userColor} position={this.state.fen}/>
-            <Chat roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} messageHistory={this.state.messageHistory}/>
+            <Game ref={(r)=>{this.game = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} userColor={this.state.userColor} position={this.state.fen}/>
+            <Chat ref={(r)=>{this.chat = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} messageHistory={this.state.messageHistory}/>
             </>
         )
     }
