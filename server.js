@@ -82,8 +82,9 @@ app.get('/rooms', function(req, res) {
 
 app.post('/makeRoom', jsonParser, function(req, res) {
     console.log(req.body);
-    rooms.push({id: idCount++, name: req.body.roomName, messages: []});
-    res.json({message: `New room with name ${req.body.roomName} created!`})
+    let newRoom = {id: idCount++, name: req.body.roomName, messages: [], players: [], gameFen: 'start'};
+    rooms.push(newRoom);
+    res.json({message: `New room with name ${req.body.roomName} created!`, data: newRoom})
 })
 
 app.get('/room/:roomID', function(req, res){

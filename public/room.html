@@ -3,15 +3,47 @@
     <title>Node-Chess Room</title>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="flex" id="root"></div>
     <script src="/room.bundle.js"></script>
 </body>
 <style>
-    div#root {
+    body {
+        margin: 0;
+        height: 100vh;
+    }
+    div.flex {
         display: flex;
+    }
+    div.flex-column {
+        display: flex;
+        flex-direction: column;
     }
     textarea {
         resize: none;
-        
+
+    }
+    .flex-fill {
+        flex: 1;
+    }
+    div#board-container {
+        background-color: #333;
+    }
+    div#board-container div div {
+        margin: 0 auto;
+    }
+    div#chat-container {
+        height: 100vh;
+    }
+    button {
+        border: solid;
+        border-width: 0;
+        background-color: #222;
+        color: white;
+    }
+    #messageEntry {
+        display: flex;
+    }
+    #messageHistory {
+        overflow-y: scroll;
     }
 </style>

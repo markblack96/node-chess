@@ -60,7 +60,9 @@ class Game extends React.Component {
     }
     render() {
         return (
+            <div class="flex-fill" id="board-container">
             <Chessboard position={this.state.fen} onDrop={this.onDrop} />
+            </div>
         )
     }
 }
@@ -110,8 +112,8 @@ class Chat extends React.Component {
             return <p>{d.from}: {d.message}</p>
           })
         return(
-            <div class="flex">
-            <div id="messageHistory">
+            <div class="flex-column" id="chat-container">
+            <div id="messageHistory" class="flex-fill">
                 {messages}
             </div>
             <div id="messageEntry">
