@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
 import Chess from 'chess.js';
 import Chessboard from 'chessboardjsx';
@@ -46,6 +46,7 @@ class Game extends React.Component {
         console.log(this.game.turn() !== this.state.userColor);
         console.log(this.game.turn(),this.state.userColor)
         if (this.game.turn() !== this.state.userColor) return; // escape before move is made
+        if (this.props.population < 2) return;
         let move = this.game.move({
             from: sourceSquare,
             to: targetSquare,
@@ -129,6 +130,7 @@ class Room extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            population: 0,
             messageHistory: [], 
             userColor: null,
             userID: null,
@@ -164,6 +166,12 @@ class Room extends React.Component {
             if (data.type === 'message') {
                 this.chat.setState({messageHistory: data.messageHistory})
             }
+            if (data.type === 'join-notification') {
+                this.setState({
+                    population: data.population,
+                });
+                console.log(data.population);
+            }
         }
         
     }
@@ -173,7 +181,7 @@ class Room extends React.Component {
         }
         return (
             <>
-            <Game ref={(r)=>{this.game = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} userColor={this.state.userColor} position={this.state.fen}/>
+            <Game ref={(r)=>{this.game = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} userColor={this.state.userColor} position={this.state.fen} population={this.state.population}/>
             <Chat ref={(r)=>{this.chat = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} messageHistory={this.state.messageHistory}/>
             </>
         )

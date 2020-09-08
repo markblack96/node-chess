@@ -38,6 +38,7 @@ wsServer.on('connection', socket=>{
                     });
                     socket.send(response);
                     rooms[roomIndex].players.push({userID: idCount, socket: socket});
+                    rooms[roomIndex].players.forEach(d=>d.socket.send(JSON.stringify({type: 'join-notification', notif: `${playerColor} joined`, population: rooms[roomIndex].players.length})));
                     break;
                 case "chat":
                     // send message in room
