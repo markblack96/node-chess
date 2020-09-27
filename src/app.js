@@ -1,5 +1,38 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
+import UserData from './UserData'
+import session from 'express-session';
+
+class UserOptions extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      username: '',
+    }
+    this.handleChange = this.handleChange.bind(this);
+    this.saveUserInfo = this.saveUserInfo.bind(this);
+  }
+  componentDidMount() {
+    this.setState({username: sessionStorage.username !== undefined ? sessionStorage.username : ''})
+  }
+  handleChange(event) {
+    this.setState({username: event.target.value})
+  }
+  saveUserInfo() {
+    // write user info to session storage and use cookie to hold session token
+    sessionStorage.setItem('username', this.state.username);
+  }
+  render() {
+    return (
+      <div id="user-options" className="flex-column">
+        <h3>User Options</h3>
+        <label>Username:</label>
+        <input type="text" name="username" placeholder={this.state.username} onChange={this.handleChange}></input>
+        <button onClick={this.saveUserInfo}>Save</button>
+      </div>
+    )
+  }
+}
 
 class MakeRoomForm extends React.Component {
   constructor(props) {
@@ -25,11 +58,11 @@ class MakeRoomForm extends React.Component {
   }
   render() {
     return (
-      <>
+      <div className="flex-column">
       <h3>Make a new Room</h3>
       <label>Room Name: </label><input onChange={this.handleChange} value={this.state.value} type="text"></input>
       <button onClick={this.handleMakeRoom}>Make Room</button>
-      </>
+      </div>
     )
   }
 }
@@ -50,7 +83,10 @@ class RoomList extends React.Component {
     console.log("State", this.state);
     return (
       <>
-      <ul>{list}</ul>
+      <ul>
+        <h3>Rooms</h3>
+        {list}
+      </ul>
       </>
     )
   }
@@ -64,16 +100,20 @@ class App extends React.Component {
     this.addRoom = this.addRoom.bind(this);
   }
   componentDidMount() {
-    fetch('/rooms').then(d=>d.json())
-      .then(d=>{
-        console.log("setting state");
-        this.setState({
-          rooms: d,
-          isLoading: false
-        })
-        console.log(this.state);
-        // this.forceUpdate();
-      });
+    fetch('/generateToken')
+    .then(d=>d.json())
+    .then(json=>{
+      console.log(json);
+      document.cookie = `token=${json.token}`;
+    })
+    .then(()=>fetch('/rooms'))
+    .then(d=>d.json())
+    .then(d=>{
+      this.setState({
+        rooms: d,
+        isLoading: false
+      })
+    });
   }
   addRoom(newRoom) {
     // handler passed to MakeRoomForm
@@ -87,10 +127,16 @@ class App extends React.Component {
     }
     return ( 
       <>
+      <div class="hero">
       <h1>Welcome to Node-Chess!</h1>
+      </div>
+      <div class="explainer">
       <p>Node-Chess allows you to make a room and play chess with your friends!</p>
-      <RoomList rooms={this.state.rooms} />
+      </div>
+      <UserData username={sessionStorage.username}/>
+      <UserOptions />
       <MakeRoomForm addRoom={this.addRoom}/>
+      <RoomList rooms={this.state.rooms} />
       </>
     ) 
   }

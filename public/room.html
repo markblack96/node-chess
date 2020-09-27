@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Node-Chess Room</title>
 </head>
 <body>
@@ -26,24 +27,39 @@
         flex: 1;
     }
     div#board-container {
-        background-color: #333;
+        background-color: #F6E9D6;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
     div#board-container div div {
         margin: 0 auto;
     }
     div#chat-container {
         height: 100vh;
+        max-width: 25%;
     }
     button {
         border: solid;
         border-width: 0;
-        background-color: #222;
+        background-color: #F1DCBC ;
+        color: #222;
+    }
+    button:hover {
+        background-color: #967152;
         color: white;
+        cursor: pointer;
     }
     #messageEntry {
         display: flex;
     }
+    #messageEntry textarea {
+        flex: 1;
+    }
     #messageHistory {
         overflow-y: scroll;
+    }
+    #messageHistory p {
+        padding: 0 1em;
     }
 </style>

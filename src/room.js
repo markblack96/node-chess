@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Chess from 'chess.js';
 import Chessboard from 'chessboardjsx';
+import session from 'express-session';
 
 
 
@@ -9,6 +10,7 @@ class Game extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            width: window.innerWidth * 0.4,
             userColor: this.props.userColor,
             roomID: this.props.roomID,
             socket: this.props.socket,
@@ -28,6 +30,12 @@ class Game extends React.Component {
         */
         this.sendMove = this.sendMove.bind(this);
         this.onDrop = this.onDrop.bind(this);
+        window.addEventListener('resize', ()=>{
+            console.log(this.state.width);
+            this.setState({
+                width: window.innerWidth * 0.4,
+            })
+        })
     }
     sendMove() {
         this.state.socket.send(JSON.stringify({
@@ -39,12 +47,15 @@ class Game extends React.Component {
         }));
     }
     componentDidMount() {
-        let chess = new Chess();
+        console.log("this.props.position", this.props.position)
+        let chess = new Chess(this.props.position);
         this.game = chess;
     }
     onDrop({ sourceSquare, targetSquare }) {
+        console.log("this.game.fen()", this.game.fen());
         console.log(this.game.turn() !== this.state.userColor);
         console.log(this.game.turn(),this.state.userColor)
+        console.log("this.props.population < 2?", this.props.population < 2);
         if (this.game.turn() !== this.state.userColor) return; // escape before move is made
         if (this.props.population < 2) return;
         let move = this.game.move({
@@ -57,12 +68,14 @@ class Game extends React.Component {
             fen: this.game.fen(),
             // history: this.game.history({ verbose: true }),
         })
+        this.props.handlePositionChange(this.game.fen());
         this.sendMove();
     }
     render() {
+        let width = window.innerWidth * 0.4;
         return (
             <div class="flex-fill" id="board-container">
-            <Chessboard position={this.state.fen} onDrop={this.onDrop} />
+            <Chessboard position={this.state.fen} onDrop={this.onDrop} width={width} />
             </div>
         )
     }
@@ -100,17 +113,18 @@ class Chat extends React.Component {
             data: {
                 message: this.state.currentMessage,
                 from: this.state.userID,
+                username: sessionStorage.username !== undefined ? sessionStorage.username : `No Name#${this.state.userID}`,
                 roomID: this.state.roomID
             }
         }));
-
+        this.setState({currentMessage: ''});
     }
     handleChange(event) {
         this.setState({currentMessage: event.target.value});
     }
     render() {
         let messages = this.state.messageHistory.map((d)=>{
-            return <p>{d.from}: {d.message}</p>
+            return <p>{d.username}: {d.message}</p>
           })
         return(
             <div class="flex-column" id="chat-container">
@@ -134,8 +148,9 @@ class Room extends React.Component {
             messageHistory: [], 
             userColor: null,
             userID: null,
+            username: sessionStorage.getItem('username'),
             roomID: parseInt(document.URL.split('/')[4]),
-            fen: 'start',
+            fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
             socket: new WebSocket('ws://localhost:3000'),
             isLoading: true // least hacky solution to get userID to be passed to children
         }
@@ -146,18 +161,19 @@ class Room extends React.Component {
 
         this.state.socket.onopen = (d) => {
             this.state.socket.send(JSON.stringify({type: "join", data: {
-                roomID: this.state.roomID
+                roomID: this.state.roomID,
+                username: sessionStorage.getItem('username'),
+                token: Object.fromEntries(document.cookie.split('; ').map(x => x.split('='))).token,
             }}))
         }
         this.state.socket.onmessage = (d) => {
             console.log(d);
             let data = JSON.parse(d.data);
             if (data.type === 'join') {
-                this.setState({userID: data.userID, userColor: data.userColor, fen: data.fen, isLoading: false})
+                this.setState({userID: data.userID, userColor: data.userColor, fen: data.fen, population: data.population, isLoading: false})
             }
             if (data.type === 'move') {
                 console.log("Move received");
-
                 console.log(data.fen);
                 this.game.game.load(data.fen);
                 this.game.setState({fen: data.fen})
@@ -175,13 +191,16 @@ class Room extends React.Component {
         }
         
     }
+    handlePositionChange(newPosition) {
+        this.setState({fen: newPosition})
+    }
     render() {
         if (this.state.isLoading) {
             return <p>Loading...</p>;
         }
         return (
             <>
-            <Game ref={(r)=>{this.game = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} userColor={this.state.userColor} position={this.state.fen} population={this.state.population}/>
+            <Game ref={(r)=>{this.game = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} handlePositionChange={this.handlePositionChange.bind(this)} userColor={this.state.userColor} position={this.state.fen} population={this.state.population}/>
             <Chat ref={(r)=>{this.chat = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} messageHistory={this.state.messageHistory}/>
             </>
         )
