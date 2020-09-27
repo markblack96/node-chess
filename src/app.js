@@ -50,9 +50,6 @@ class MakeRoomForm extends React.Component {
       .then(json=>{
         alert(json.message);
         this.props.addRoom(json.data);
-      /* }).then(()=>{
-        // this.props.addRoom({name: this.state.value});
-        this.props.addROom()*/
       }); 
     // event.preventDefault(); I don't think we need this but it's worth having here to remind myself of its existence
   }
@@ -121,7 +118,6 @@ class App extends React.Component {
     this.setState({rooms: this.state.rooms});
   }
   render() {
-    // let rooms = [{id: 1, room: "Hello, room"}];
     if (this.state.isLoading) {
       return <p>Loading</p>
     }

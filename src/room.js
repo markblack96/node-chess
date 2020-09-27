@@ -72,7 +72,11 @@ class Game extends React.Component {
         this.sendMove();
     }
     render() {
-        let width = window.innerWidth * 0.4;
+        let factor = 0.4; // default for desktop
+        if (window.innerWidth <= 800) { // tablets and below get special styling
+            factor = 0.8;
+        }
+        let width = window.innerWidth * factor;
         return (
             <div class="flex-fill" id="board-container">
             <Chessboard position={this.state.fen} onDrop={this.onDrop} width={width} />
@@ -124,7 +128,7 @@ class Chat extends React.Component {
     }
     render() {
         let messages = this.state.messageHistory.map((d)=>{
-            return <p>{d.username}: {d.message}</p>
+            return <p><span className="username">{d.username}</span>: {d.message}</p>
           })
         return(
             <div class="flex-column" id="chat-container">
@@ -149,7 +153,7 @@ class Room extends React.Component {
             userColor: null,
             userID: null,
             username: sessionStorage.getItem('username'),
-            roomID: parseInt(document.URL.split('/')[4]),
+            roomID: document.URL.split('/')[4],
             fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
             socket: new WebSocket('ws://localhost:3000'),
             isLoading: true // least hacky solution to get userID to be passed to children
@@ -199,10 +203,28 @@ class Room extends React.Component {
             return <p>Loading...</p>;
         }
         return (
-            <>
-            <Game ref={(r)=>{this.game = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} handlePositionChange={this.handlePositionChange.bind(this)} userColor={this.state.userColor} position={this.state.fen} population={this.state.population}/>
-            <Chat ref={(r)=>{this.chat = r}} roomID={this.state.roomID} socket={this.state.socket} userID={this.state.userID} messageHistory={this.state.messageHistory}/>
-            </>
+            <div id="room-container" className="flex-column">
+            <div id="header">
+                <a href="/">Home</a>
+            </div>
+            <div className="flex" id="game-container">
+                <Game 
+                    ref={(r)=>{this.game = r}} 
+                    roomID={this.state.roomID} 
+                    socket={this.state.socket} userID={this.state.userID} 
+                    handlePositionChange={this.handlePositionChange.bind(this)} 
+                    userColor={this.state.userColor} position={this.state.fen} 
+                    population={this.state.population}
+                />
+                <Chat 
+                    ref={(r)=>{this.chat = r}} 
+                    roomID={this.state.roomID} 
+                    socket={this.state.socket} 
+                    userID={this.state.userID} 
+                    messageHistory={this.state.messageHistory}
+                />
+            </div>
+            </div>
         )
     }
 }

@@ -61,5 +61,36 @@
     }
     #messageHistory p {
         padding: 0 1em;
+        font-family:'Courier New', Courier, monospace;
+    }
+    span.username {
+        font-style: italic;
+    }
+    div#header {
+        position: absolute;
+        font-family: sans-serif;
+    }
+    div#room-container {
+        width: 100%;
+    }
+    @media only screen and (max-width: 800px) {
+        div#game-container {
+            flex-direction: column;
+            height: 100vh;
+        }
+        div#chat-container {
+            height: 20vh;
+            width: 100vw;
+            margin-top: auto;
+        }
+        div#messageEntry {
+        max-width: 100vw;
+            width: 100vw;
+            
+        }
+        div#messageHistory {
+        max-width: 100vw;
+        width: 100vw;
+        }
     }
 </style>

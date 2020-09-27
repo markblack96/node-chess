@@ -5,10 +5,11 @@ const WebSocket = require('ws');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 
-const generateID = Math.random().toString(36).substr(2, 5);
+const generateID = ()=>Math.random().toString(36).substr(2, 5);
 
 var rooms = [
-    {id: 1, name: "Peewee's Playhouse", messages: [], players: [], gameFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'},
+    // {id: 1, name: "Peewee's Playhouse", messages: [], players: [], gameFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'},
+    {id: generateID(), name: "Peewee's Playhouse", messages: [], players: [], gameFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'},
 ]
 var idCount = 3;
 var playerCount = 0;
@@ -23,7 +24,7 @@ wsServer.on('connection', socket=>{
     socket.on('message', message => {
         let json = JSON.parse(message);
         if (json !== undefined) {
-            let roomID = parseInt(json.data.roomID);
+            let roomID = json.data.roomID;
             let roomIndex = rooms.findIndex(r=>r.id===roomID);
             switch (json.type) {
                 case "join":
@@ -75,10 +76,10 @@ wsServer.on('connection', socket=>{
                         userColor: playerColor,
                         fen: rooms[roomIndex].gameFen,
                         population: room.players.length,
-                        message: `Player ${idCount} added to room ${roomID}`
+                        message: `Player ${playerID} added to room ${roomID}`
                     });
                     socket.send(response);
-                    rooms[roomIndex].players.push({userID: idCount, username: json.data.username, userColor: playerColor, token: json.data.token, socket: socket});
+                    rooms[roomIndex].players.push({userID: playerID, username: json.data.username, userColor: playerColor, token: json.data.token, socket: socket});
                     rooms[roomIndex].players.forEach(d=>d.socket.send(JSON.stringify({type: 'join-notification', notif: `${playerColor} joined`, population: rooms[roomIndex].players.length})));
                     break;
                 case "chat":
@@ -118,7 +119,7 @@ app.get('/generateToken', jsonParser, function(req, res) {
     if (req.cookies.token !== undefined) {
         return res.json({token: req.cookies.token})
     }
-    let token = jwt.sign({id: ++idCount}, 'mySecret', {
+    let token = jwt.sign({id: generateID()}, 'mySecret', { // {id: ++idCount}
         expiresIn: '1d',
     });
     console.log(token);
@@ -136,7 +137,8 @@ app.get('/rooms', function(req, res) {
 
 app.post('/makeRoom', jsonParser, function(req, res) {
     console.log(req.body);
-    let newRoom = {id: idCount++, name: req.body.roomName, messages: [], players: [], gameFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'};
+    // let newRoom = {id: idCount++, name: req.body.roomName, messages: [], players: [], gameFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'};
+    let newRoom = {id: generateID(), name: req.body.roomName, messages: [], players: [], gameFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'};
     rooms.push(newRoom);
     res.json({message: `New room with name ${req.body.roomName} created!`, data: newRoom})
 })
@@ -146,13 +148,13 @@ app.get('/room/:roomID', function(req, res){
 })
 
 app.get('/messages/:roomID', function(req, res){
-    let messages = rooms.find((room=>room.id===parseInt(req.params.roomID))).messages;
+    let messages = rooms.find((room=>room.id===req.params.roomID)).messages;
     res.json(messages);
 })
 
 app.post('/sendMessage', jsonParser, function(req, res){
-    rooms[rooms.findIndex(room=>room.id===parseInt(req.body.roomID))].messages.push(req.body.message);
-    let room = rooms[rooms.findIndex(room=>room.id===parseInt(req.body.roomID))];
+    rooms[rooms.findIndex(room=>room.id===req.body.roomID)].messages.push(req.body.message);
+    let room = rooms[rooms.findIndex(room=>room.id===req.body.roomID)];
     res.json(room.messages);
 })
 app.post('/joinGame', jsonParser, function(req, res){
