@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Chess from 'chess.js';
 import Chessboard from 'chessboardjsx';
-import session from 'express-session';
 
 
 
@@ -156,9 +155,21 @@ class Room extends React.Component {
             roomID: document.URL.split('/')[4],
             fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
             socket: new WebSocket('ws://localhost:3000'),
+            token: Object.fromEntries(document.cookie.split('; ').map(x => x.split('='))).token,
             isLoading: true // least hacky solution to get userID to be passed to children
         }
-
+    }
+    componentDidMount() {
+        if (this.state.token === undefined) {
+            // fetch a token
+            fetch('/generateToken')
+                .then(d=>d.json())
+                .then(json=>{
+                    console.log(json);
+                    document.cookie = `token=${json.token}`;
+                    this.setState({token: Object.fromEntries(document.cookie.split('; ').map(x => x.split('='))).token})
+                })
+        }
         fetch('/messages/' + this.state.roomID)
             .then(resp=>resp.json())
             .then(json=>this.setState({messageHistory: json}));
@@ -167,7 +178,7 @@ class Room extends React.Component {
             this.state.socket.send(JSON.stringify({type: "join", data: {
                 roomID: this.state.roomID,
                 username: sessionStorage.getItem('username'),
-                token: Object.fromEntries(document.cookie.split('; ').map(x => x.split('='))).token,
+                token: this.state.token,
             }}))
         }
         this.state.socket.onmessage = (d) => {
@@ -193,7 +204,6 @@ class Room extends React.Component {
                 console.log(data.population);
             }
         }
-        
     }
     handlePositionChange(newPosition) {
         this.setState({fen: newPosition})

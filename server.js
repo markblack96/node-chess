@@ -102,8 +102,6 @@ wsServer.on('connection', socket=>{
             }
         }
     } );
-
-    // socket.send('Hello, client!');
 })
 const server = app.listen(3000); // needed for upgrade to ws
 server.on('upgrade', (request, socket, head) => {
@@ -144,7 +142,12 @@ app.post('/makeRoom', jsonParser, function(req, res) {
 })
 
 app.get('/room/:roomID', function(req, res){
-    res.sendFile(path.join(__dirname + '/public/room.html'))
+    let room = rooms.find(elem=>elem.id===req.params.roomID);
+    if (room === undefined) {
+        res.sendStatus(404);
+    } else {
+        res.sendFile(path.join(__dirname + '/public/room.html'))
+    }
 })
 
 app.get('/messages/:roomID', function(req, res){
