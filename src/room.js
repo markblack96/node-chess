@@ -16,17 +16,7 @@ class Game extends React.Component {
             fen:  this.props.position, //'start'  // 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' // starting position
         }
         console.log("State at constructor", this.state);
-        /*
-        this.state.socket.onmessage = (d) => {
-            let data = JSON.parse(d.data);
-            console.log(data);
-            if (data.type === 'move') {
-                console.log("Move received");
-                this.setState({fen: data.fen})
-                // this.game.position = this.state.fen;
-            }
-        } 
-        */
+        
         this.sendMove = this.sendMove.bind(this);
         this.onDrop = this.onDrop.bind(this);
         window.addEventListener('resize', ()=>{

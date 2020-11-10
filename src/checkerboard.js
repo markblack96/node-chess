@@ -1,0 +1,112 @@
+/**
+ * Taken from the examples of boardgame.io
+ */
+
+ import React from 'react';
+ import { Grid } from './grid';
+
+ /**
+ * Checkerboard
+ *
+ * Component that will show a configurable checker board for games like
+ * chess, checkers and others. The vertical columns of squares are labeled
+ * with letters from a to z, while the rows are labeled with numbers, starting
+ * with 1.
+ *
+ * Props:
+ *   rows    - How many rows to show up, 8 by default.
+ *   cols    - How many columns to show up, 8 by default. Maximum is 26.
+ *   onClick - On Click Callback, (row, col) of the square passed as argument.
+ *   primaryColor - Primary color, #d18b47 by default.
+ *   secondaryColor - Secondary color, #ffce9e by default.
+ *   colorMap - Object of object having cell names as key and colors as values.
+ *   Ex: { 'c5': 'red' } colors cells c5 with red.
+ *
+ * Usage:
+ *
+ * <Checkerboard>
+ *   <Token square={'c5'}>
+ *     <Knight color='dark' />
+ *   </Token>
+ * </Checkerboard>
+ */
+
+export class Checkerboard extends React.Component {
+    static defaultProps = {
+        rows: 8,
+        cols: 8,
+        onClick: () => {},
+        primaryColor: '#d18b47',
+        secondaryColor: '#ffce9e',
+        highlightedSquares: {},
+        style: {},
+    };
+
+    onclick = ({x, y})=>{
+        this.props.onClick({square: cartesianToAlgebraic(x, y, this.props.rows)})
+    };
+
+    render() {
+        // convert the square="" prop to x and y
+        const tokens = React.Children.map(this.props.children, child=> {
+            const square = child.props.square;
+            const { x, y } = algebraicToCartesian(square, this.props.rows);
+            return React.cloneElement(child, { x, y })
+        });
+
+        // Build colorMap with checkerboard pattern
+        let colorMap = {};
+        for (let x = 0; x < this.props.cols; x++) {
+            for (let y = 0; y < this.props.rows; y++) {
+                const key = `${x},${y}`;
+                let color = this.props.secondaryColor;
+                if ((x + y) % 2 == 0) {
+                color = this.props.primaryColor;
+                }
+                colorMap[key] = color;
+            }
+        }
+        
+        for (const square in this.props.highlightedSquares) {
+            const { x, y } = algebraicToCartesian(square, this.props.rows);
+            const key = `${x},${y}`;
+            colorMap[key] = this.props.highlightedSquares[square];
+        }
+
+        return (
+            <Grid
+                rows={this.props.rows}
+                cols={this.props.cols}
+                style={this.props.style}
+                onClick={this.onClick}
+                colorMap={colorMap}
+            >
+                {tokens}
+            </Grid>
+        )
+    }
+}
+/**
+ * Given an algebraic notation, returns x and y values.
+ * Example: A1 returns { x: 0, y: 0 }
+ */
+export function algebraicToCartesian(square, rows = 8) {
+    let regexp = /([A-Za-z])(\d+)/g;
+    let match = regexp.exec(square);
+    if (match == null) {
+      throw 'Invalid square provided: ' + square;
+    }
+    let colSymbol = match[1].toLowerCase();
+    let col = colSymbol.charCodeAt(0) - 'a'.charCodeAt(0);
+    let row = parseInt(match[2]);
+    return { x: col, y: rows - row };
+  }
+  
+  /**
+   * Given an x and y values, returns algebraic notation.
+   * Example: 0, 0 returns A1
+   */
+  export function cartesianToAlgebraic(x, y, rows = 8) {
+    let colSymbol = String.fromCharCode(x + 'a'.charCodeAt(0));
+    return colSymbol + (rows - y);
+  }
